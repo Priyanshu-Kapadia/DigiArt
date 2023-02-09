@@ -21,7 +21,7 @@ const MasonryList = ({ pins }: IMasonaryList) => {
     <ScrollView>
       <View style={styles.container}>
         {Array.from(Array(numColums)).map((col, colIndex) => (
-          <View style={styles.column} key={colIndex}>
+          <View style={styles.column} key={`column_${colIndex}`}>
             {pins
               .filter((_, index) => index % numColums === colIndex)
               .map((pin) => (

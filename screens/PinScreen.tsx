@@ -6,8 +6,9 @@ import {
   Dimensions,
   Pressable,
   ScrollView,
+  Alert,
 } from "react-native";
-import pins from "../assets/data/pins";
+// import pins from "../assets/data/pins";
 import { useState, useEffect } from "react";
 import {
   SafeAreaView,
@@ -20,9 +21,13 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import ReactNativeZoomableView from "@dudigital/react-native-zoomable-view/src/ReactNativeZoomableView";
 
 import Lottie from "lottie-react-native";
+import { useNhostClient } from "@nhost/react";
 
 const PinScreen = () => {
   const [ratio, setRatio] = useState(1);
+  const [pin, setPin] = useState<any>(null);
+
+  const nhost = useNhostClient();
 
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -30,11 +35,38 @@ const PinScreen = () => {
 
   const pinId = route.params?.id;
 
-  const pin = pins.find((p) => p.id === pinId);
+  // const pin = pins.find((p) => p.id === pinId);
   const windowHeight = Dimensions.get("window").height;
 
+  const GET_PIN_QUERY = `
+  query MyQuery ($id: uuid!){
+    pins_by_pk(id: $id) {
+      id
+      image
+      title
+      user {
+        id
+        displayName
+        avatarUrl
+      }
+    }
+  }
+  `;
+  
+  const fetchPin = async (pinId: undefined) => {
+    const response = await nhost.graphql.request(GET_PIN_QUERY, { id: pinId });
+    if (response.error) {
+      Alert.alert("Error fetching pin");
+    } else {
+      setPin(response.data.pins_by_pk);
+    }
+  };
   useEffect(() => {
-    if (pin.image) {
+    fetchPin(pinId);
+  }, [pinId]);
+
+  useEffect(() => {
+    if (pin?.image) {
       Image.getSize(pin.image, (width, height) =>
         windowHeight >= 1080
           ? setRatio(width / (height / 1.1))
@@ -54,13 +86,14 @@ const PinScreen = () => {
   return (
     <SafeAreaView style={{ backgroundColor: "black" }}>
       <StatusBar style="light" />
-      <ScrollView style={{
-        height: '100%',
-        backgroundColor: 'white',
-        borderTopLeftRadius: 50,
-        borderTopRightRadius: 50,
-        // flex: 1
-      }}>
+      <ScrollView
+        style={{
+          height: "100%",
+          backgroundColor: "white",
+          borderTopLeftRadius: 50,
+          borderTopRightRadius: 50,
+        }}
+      >
         <View style={styles.view1}>
           <ReactNativeZoomableView
             maxZoom={1.5}
@@ -81,9 +114,14 @@ const PinScreen = () => {
         <View style={styles.view2}>
           <Text style={styles.title}>{pin.title}</Text>
           <Text style={styles.title}>Made By Priyanshu</Text>
-          <Lottie source={require("../assets/pencil.json")} autoPlay loop style={{
-            height: 80
-          }}/>
+          <Lottie
+            source={require("../assets/pencil.json")}
+            autoPlay
+            loop
+            style={{
+              height: 80,
+            }}
+          />
         </View>
       </ScrollView>
       <Pressable
@@ -106,9 +144,9 @@ const styles = StyleSheet.create({
   },
   view2: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 5
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 5,
   },
   image: {
     width: "100%",
